@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package demo;
+
+service AuthService {
+  rpc authenticate (AuthReq) returns (AuthReply) {}
+}
+
+message AuthReq {
+  string mail = 1;
+  string password = 2;
+}
+
+message AuthReply {
+  AuthStatus status = 1;
+}
+
+enum AuthStatus {
+  FAILURE = 0;
+  OK = 1;
+}
