@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package demo;
+
+service GeoService {
+    rpc getAllCountries (GeoPingReq) returns (GeoReply) {}
+}
+
+message GeoPingReq {}
+message GeoPingRes {}
+message GeoReply {
+    string message = 1;
+}

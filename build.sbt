@@ -10,6 +10,8 @@ libraryDependencies ++= Seq(
 ).map(_ % circeVersion)
 
 libraryDependencies ++= Seq(
+  "com.lihaoyi" %% "os-lib" % "0.7.3",
+  "com.lihaoyi" %% "upickle" % "0.9.5",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.12.1",
   "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,
   "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
