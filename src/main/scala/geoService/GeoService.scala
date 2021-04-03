@@ -1,7 +1,7 @@
 package geoService
 
 import demo.geo.GeoServiceGrpc.GeoService
-import demo.geo.{GeoPingReq, GeoReply, GeoServiceGrpc}
+import demo.geo.{GeoGetCityReq, GeoGetStateReq, GeoPingReq, GeoReply, GeoServiceGrpc}
 import io.grpc.{ManagedChannelBuilder, ServerBuilder}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
@@ -11,14 +11,34 @@ class GeoService extends GeoServiceGrpc.GeoService {
     val csvString = os.read(os.pwd/"src"/"main"/"scala"/"geoService"/"data.csv")
     csvString
   }
+
   private def getCountries(): String = {
     val asd = readCSV().split("\n").map(_.split(",")).map(_(1)).distinct.tail
-    val abs = asd.map(e => e.replace("\"", "")).mkString(",")
-   "asd"
+    asd.map(e => e.replace("\"", "")).mkString(",")
   }
-  getCountries()
+
+  private def getStates(country: String) = {
+    val asd = readCSV().split("\n").filter(_.contains(country)).map(_.split(",")).map(_(2)).distinct.tail
+    asd.map(e => e.replace("\"", "")).mkString(",")
+  }
+
+  private def getCities(state: String) = {
+    val asd = readCSV().split("\n").filter(_.contains(state)).map(_.split(",")).map(_(0)).distinct.tail
+    asd.map(e => e.replace("\"", "")).mkString(",")
+  }
+
   override def getAllCountries(request: GeoPingReq): Future[GeoReply] = {
     val reply = GeoReply(message = getCountries())
+    Future.successful(reply)
+  }
+
+  override def getAllStates(request: GeoGetStateReq): Future[GeoReply] = {
+    val reply = GeoReply(message = getStates(request.country))
+    Future.successful(reply)
+  }
+
+  override def getAllCities(request: GeoGetCityReq): Future[GeoReply] = {
+    val reply = GeoReply(message = getCities(request.city))
     Future.successful(reply)
   }
 }
@@ -57,7 +77,8 @@ object ClientDemo extends App {
   val healthyStubs = stubs
 
   // Say hello (request/response)
-  val response: Future[GeoReply] = stub1.getAllCountries(GeoPingReq())
+//  val response: Future[GeoReply] = stub1.getAllStates(GeoGetStateReq("Argentina"))
+  val response: Future[GeoReply] = stub1.getAllCities(GeoGetCityReq("Paris"))
 
   response.onComplete { r =>
     println("Response: " + r)

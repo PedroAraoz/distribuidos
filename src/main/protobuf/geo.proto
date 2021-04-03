@@ -4,10 +4,22 @@ package demo;
 
 service GeoService {
     rpc getAllCountries (GeoPingReq) returns (GeoReply) {}
+    rpc getAllStates (GeoGetStateReq) returns (GeoReply) {}
+    rpc getAllCities (GeoGetCityReq) returns (GeoReply) {}
 }
 
 message GeoPingReq {}
+
 message GeoPingRes {}
+
 message GeoReply {
     string message = 1;
+}
+
+message GeoGetStateReq {
+    string country = 2;
+}
+
+message GeoGetCityReq {
+    string city = 3;
 }
