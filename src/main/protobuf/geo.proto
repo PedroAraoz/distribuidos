@@ -6,6 +6,7 @@ service GeoService {
     rpc getAllCountries (GeoPingReq) returns (GeoReply) {}
     rpc getAllStates (GeoGetStateReq) returns (GeoReply) {}
     rpc getAllCities (GeoGetCityReq) returns (GeoReply) {}
+    rpc getCountryCityByIP (GeoGetCountryCityByIPReq) returns (GeoReply) {}
 }
 
 message GeoPingReq {}
@@ -22,4 +23,8 @@ message GeoGetStateReq {
 
 message GeoGetCityReq {
     string city = 3;
+}
+
+message GeoGetCountryCityByIPReq {
+    string ip = 4;
 }

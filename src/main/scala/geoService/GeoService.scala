@@ -1,12 +1,18 @@
 package geoService
 
 import demo.geo.GeoServiceGrpc.GeoService
-import demo.geo.{GeoGetCityReq, GeoGetStateReq, GeoPingReq, GeoReply, GeoServiceGrpc}
+import demo.geo.{GeoGetCityReq, GeoGetCountryCityByIPReq, GeoGetStateReq, GeoPingReq, GeoReply, GeoServiceGrpc}
 import io.grpc.{ManagedChannelBuilder, ServerBuilder}
+import scalaj.http.{Http, HttpOptions}
 
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class GeoService extends GeoServiceGrpc.GeoService {
+
+  var cache: Map[String, String] = Map()
+
   private def readCSV(): String = {
     val csvString = os.read(os.pwd/"src"/"main"/"scala"/"geoService"/"data.csv")
     csvString
@@ -18,14 +24,28 @@ class GeoService extends GeoServiceGrpc.GeoService {
   }
 
   private def getStates(country: String) = {
-    val asd = readCSV().split("\n").filter(_.contains(country)).map(_.split(",")).map(_(2)).distinct.tail
+    val asd = readCSV().split("\n").filter(_.contains(country)).map(_.split(",")).map(_(2)).distinct
     asd.map(e => e.replace("\"", "")).mkString(",")
   }
 
   private def getCities(state: String) = {
-    val asd = readCSV().split("\n").filter(_.contains(state)).map(_.split(",")).map(_(0)).distinct.tail
+    val asd = readCSV().split("\n").filter(_.contains(state)).map(_.split(",")).map(_(0)).distinct
     asd.map(e => e.replace("\"", "")).mkString(",")
   }
+
+  private def getCountryCityByIP(ip: String): String = {
+
+    if (cache.contains(ip)) {
+      cache(ip)
+    } else {
+      val request = Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.toString
+      cache += (ip -> request)
+      request
+    }
+
+  }
+
+  ///////
 
   override def getAllCountries(request: GeoPingReq): Future[GeoReply] = {
     val reply = GeoReply(message = getCountries())
@@ -39,6 +59,11 @@ class GeoService extends GeoServiceGrpc.GeoService {
 
   override def getAllCities(request: GeoGetCityReq): Future[GeoReply] = {
     val reply = GeoReply(message = getCities(request.city))
+    Future.successful(reply)
+  }
+
+  override def getCountryCityByIP(request: GeoGetCountryCityByIPReq): Future[GeoReply] = {
+    val reply = GeoReply(message = getCountryCityByIP(request.ip))
     Future.successful(reply)
   }
 }
@@ -78,7 +103,10 @@ object ClientDemo extends App {
 
   // Say hello (request/response)
 //  val response: Future[GeoReply] = stub1.getAllStates(GeoGetStateReq("Argentina"))
-  val response: Future[GeoReply] = stub1.getAllCities(GeoGetCityReq("Paris"))
+//  val response: Future[GeoReply] = stub1.getAllCities(GeoGetCityReq("Arizona"))
+  val response: Future[GeoReply] = stub1.getCountryCityByIP(GeoGetCountryCityByIPReq("181.16.95.204"))
+  Thread.sleep(10000) // Asynchronous
+  val response2: Future[GeoReply] = stub1.getCountryCityByIP(GeoGetCountryCityByIPReq("181.16.95.204"))
 
   response.onComplete { r =>
     println("Response: " + r)

@@ -10,6 +10,7 @@ libraryDependencies ++= Seq(
 ).map(_ % circeVersion)
 
 libraryDependencies ++= Seq(
+  "org.scalaj" %% "scalaj-http" % "2.4.2",
   "com.lihaoyi" %% "os-lib" % "0.7.3",
   "com.lihaoyi" %% "upickle" % "0.9.5",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.12.1",
