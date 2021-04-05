@@ -11,20 +11,18 @@ service GeoService {
 
 message GeoPingReq {}
 
-message GeoPingRes {}
-
 message GeoReply {
     string message = 1;
 }
 
 message GeoGetStateReq {
-    string country = 2;
+    string country = 1;
 }
 
 message GeoGetCityReq {
-    string city = 3;
+    string city = 1;
 }
 
 message GeoGetCountryCityByIPReq {
-    string ip = 4;
+    string ip = 1;
 }

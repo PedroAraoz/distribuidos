@@ -1,36 +1,36 @@
 package geoService
 
-import demo.geo.GeoServiceGrpc.GeoService
-import demo.geo.{GeoGetCityReq, GeoGetCountryCityByIPReq, GeoGetStateReq, GeoPingReq, GeoReply, GeoServiceGrpc}
-import io.grpc.{ManagedChannelBuilder, ServerBuilder}
-import scalaj.http.{Http, HttpOptions}
+import demo.geo._
+import io.grpc.ServerBuilder
+import scalaj.http.Http
 
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 class GeoService extends GeoServiceGrpc.GeoService {
 
+  // There is a cache per instance of the GeoService. It saves the looked up ips so it doesn't have to re-make the request
   var cache: Map[String, String] = Map()
 
+  // Private methods to resolve the different requests
+
   private def readCSV(): String = {
-    val csvString = os.read(os.pwd/"src"/"main"/"scala"/"geoService"/"data.csv")
+    val csvString = os.read(os.pwd / "src" / "main" / "scala" / "geoService" / "data.csv")
     csvString
   }
 
   private def getCountries(): String = {
-    val asd = readCSV().split("\n").map(_.split(",")).map(_(1)).distinct.tail
-    asd.map(e => e.replace("\"", "")).mkString(",")
+    val countriesList = readCSV().split("\n").map(_.split(",")).map(_ (1)).distinct.tail
+    countriesList.map(e => e.replace("\"", "")).mkString(",")
   }
 
   private def getStates(country: String) = {
-    val asd = readCSV().split("\n").filter(_.contains(country)).map(_.split(",")).map(_(2)).distinct
-    asd.map(e => e.replace("\"", "")).mkString(",")
+    val filteredStatesList = readCSV().split("\n").filter(_.contains(country)).map(_.split(",")).map(_ (2)).distinct
+    filteredStatesList.map(e => e.replace("\"", "")).mkString(",")
   }
 
   private def getCities(state: String) = {
-    val asd = readCSV().split("\n").filter(_.contains(state)).map(_.split(",")).map(_(0)).distinct
-    asd.map(e => e.replace("\"", "")).mkString(",")
+    val filteredCitiesList = readCSV().split("\n").filter(_.contains(state)).map(_.split(",")).map(_ (0)).distinct
+    filteredCitiesList.map(e => e.replace("\"", "")).mkString(",")
   }
 
   private def getCountryCityByIP(ip: String): String = {
@@ -45,7 +45,7 @@ class GeoService extends GeoServiceGrpc.GeoService {
 
   }
 
-  ///////
+  // Overrided methods that are exposed to accept requests. They rely on the private methods for execution
 
   override def getAllCountries(request: GeoPingReq): Future[GeoReply] = {
     val reply = GeoReply(message = getCountries())
@@ -80,37 +80,4 @@ object GeoServer extends App {
 
   println("Running....")
   server.awaitTermination()
-}
-
-object ClientDemo extends App {
-
-  implicit val ec: ExecutionContextExecutor = ExecutionContext.global
-
-
-  def createStub(ip: String, port: Int = 50000): GeoServiceGrpc.GeoServiceStub = {
-    val builder = ManagedChannelBuilder.forAddress(ip, port)
-    builder.usePlaintext()
-    val channel = builder.build()
-
-    GeoServiceGrpc.stub(channel)
-  }
-
-  val stub1 = createStub("127.0.0.1", 50000)
-  val stub2 = createStub("127.0.0.1", 50001)
-
-  val stubs = List(stub1, stub2)
-  val healthyStubs = stubs
-
-  // Say hello (request/response)
-//  val response: Future[GeoReply] = stub1.getAllStates(GeoGetStateReq("Argentina"))
-//  val response: Future[GeoReply] = stub1.getAllCities(GeoGetCityReq("Arizona"))
-  val response: Future[GeoReply] = stub1.getCountryCityByIP(GeoGetCountryCityByIPReq("181.16.95.204"))
-  Thread.sleep(10000) // Asynchronous
-  val response2: Future[GeoReply] = stub1.getCountryCityByIP(GeoGetCountryCityByIPReq("181.16.95.204"))
-
-  response.onComplete { r =>
-    println("Response: " + r)
-  }
-
-  System.in.read()
 }
