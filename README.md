@@ -108,3 +108,9 @@ sudo docker images
 sudo docker ps -a
 sudo docker build -t containerName .
 sudo docker run -it containerName /bin/bash
+sudo docker run -p 8080:50000 -it containerName /bin/bash // This is to map the port 8080 of your PC to port 50000 of the Docker container
+
+## SBT RUN
+
+cd dist
+sbt run
