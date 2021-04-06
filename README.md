@@ -101,3 +101,10 @@ https://scalapb.github.io/ (scala)
 https://github.com/grpc/grpc-java/blob/master/examples/ (java examples)
 Docker
 https://docs.docker.com/
+
+
+## DOCKER COMMANDS
+sudo docker images
+sudo docker ps -a
+sudo docker build -t containerName .
+sudo docker run -it containerName /bin/bash
