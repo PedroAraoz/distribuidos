@@ -15,8 +15,10 @@ aplicar conceptos de:
 
 ### Iteración 1 - gRPC - Protocol Buffer - Docker
 #### Fecha de Muestra de Avance: 1/Abr/2019
-Fecha de Entrega: 8/Abr/2019
+#### Fecha de Entrega: 8/Abr/2019
+
 Objetivo de la iteración:
+
 Implementación de una arquitectura de Microservicios (distribuidos) con el objetivo de
 aplicar los conceptos de:
 - Programación cliente/servidor,
@@ -29,15 +31,15 @@ aplicar los conceptos de:
 - Escalabilidad
 - Deployments basados en containers (Docker)
 
-a) Implementar los siguientes servicios utilizando gRPC y Protocol Buffers:
+##### a) Implementar los siguientes servicios utilizando gRPC y Protocol Buffers:
 
 
 - GeoService - Servicio para obtener información geográfica. Debe permitir las
 siguientes operaciones:
-- Obtener la lista de países
-- Obtener la lista de provincias/estados de un país
-- Obtener la lista de localidades de una provincia/estado
-- Dado un IP, devolver el país/provincia al que pertenece, delegando la
+    - Obtener la lista de países
+    - Obtener la lista de provincias/estados de un país
+    - Obtener la lista de localidades de una provincia/estado
+    - Dado un IP, devolver el país/provincia al que pertenece, delegando la
 operación en el servicio web externo. Los resultados para un IP deben ser
 cacheados en el servicio.
   
@@ -48,15 +50,16 @@ Puede embeber una lista de usuarios/password ficticios en el servicio.
 
 
 Base de datos de Ciudades:
+
 Puede utilizar alguna base de datos CSV o JSON como por ejemplo:
+
 https://datahub.io/core/world-cities
 
 
 Los datos necesarios para el funcionamiento pueden estar embebidos en el programa (por
 ejemplo en un archivo CSV).
-S
 
-ervicios de “IP to Location”:
+Servicios de “IP to Location”:
 Para obtener el país al que pertenece un IP, puede utilizar alguno de los servicios “IP to
 Location” gratuitos que existen. Por ejemplo:
 https://ipapi.co/8.8.8.8/json/
@@ -66,7 +69,7 @@ http://ipwhois.app/json/8.8.8.8
 Los servicios deben funcionar como containers de docker.
 
 
-b) Replicar los servicios en al menos dos máquinas (puede utilizar dos containers de docker para simularlo) y proveer la siguiente funcionalidad:
+##### b) Replicar los servicios en al menos dos máquinas (puede utilizar dos containers de docker para simularlo) y proveer la siguiente funcionalidad:
 
 
 Implementar un programa cliente que recibe una lista de IPs y devuelve el país y la lista de
@@ -92,25 +95,36 @@ servicio ? ¿ Qué puede decir con respecto al encapsulamiento ?
 
 ### Referencias
 GRPC con Protocol Buffers (Google)
+
 http://www.grpc.io/
+
 http://www.grpc.io/docs/
+
 https://developers.google.com/protocol-buffers/ (protobuf)
-https://developers.google.com/protocol-buffers/docs/tutorials (protobuf tutorial, multi
-langs)
+
+https://developers.google.com/protocol-buffers/docs/tutorials (protobuf tutorial, multilangs)
+
 https://scalapb.github.io/ (scala)
+
 https://github.com/grpc/grpc-java/blob/master/examples/ (java examples)
-Docker
+
+###### Docker
 https://docs.docker.com/
 
 
 ## DOCKER COMMANDS
 sudo docker images
+
 sudo docker ps -a
+
 sudo docker build -t containerName .
+
 sudo docker run -it containerName /bin/bash
+
 sudo docker run -p 8080:50000 -it containerName /bin/bash // This is to map the port 8080 of your PC to port 50000 of the Docker container
 
 ## SBT RUN
 
 cd dist
+
 sbt run
