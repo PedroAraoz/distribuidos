@@ -6,7 +6,7 @@ import io.grpc.ManagedChannelBuilder
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.io.Source
-import scala.util.Try
+import scala.util.{Random, Try}
 
 object GeoClientDemo2 extends App {
 
@@ -19,21 +19,8 @@ object GeoClientDemo2 extends App {
 
     GeoServiceGrpc.stub(channel)
   }
-  def readFile(): List[String] = Source.fromFile("src/main/scala/geoService/ips.txt").getLines.toList
-  val ip: String = scala.io.StdIn.readLine(">")
-//  val ip = "localhost"
-  var ips: List[String] = readFile()
-
-
-  val stub1 = createStub(ip, 50004)
-  val stub2 = createStub(ip, 50003)
-  val stub3 = createStub(ip, 50002)
-  val stub4 = createStub(ip, 50000)
-
-  val stubs = List(stub1, stub2, stub3, stub4)
-  var healthyStubs = stubs
-  // POLICY = PICK_FIRST
-  def recursiveHell(): Unit = {
+  def readFile(path: String): List[String] = Source.fromFile(path).getLines.toList
+  def recursiveHell(ips: List[String]): Unit = {
     val responses: List[Future[GeoReply]] = ips.map {
       e =>
         healthyStubs.head.getCountryCityByIP(GeoGetCountryCityByIPReq(e))
@@ -44,15 +31,14 @@ object GeoClientDemo2 extends App {
         println(healthyStubs.head + " is dead, removing from list")
         healthyStubs = healthyStubs.tail
         if (healthyStubs.isEmpty)
-          healthyStubs = stubs
-        recursiveHell()
+          throw new RuntimeException("No more healthy stubs")
+        recursiveHell(ips)
       } else {
         println("Ding ding ding")
         parse(r)
       }
     }
   }
-
   def parse(r: Try[List[GeoReply]]): Unit = {
     val tupleList = r.get.map { e =>
       val data = ujson.read(e.message)
@@ -61,7 +47,22 @@ object GeoClientDemo2 extends App {
     val finalList = tupleList.groupBy(_._1).map(e => (e._1, e._2.map(_._2)))
     print(finalList)
   }
-  recursiveHell()
+  def handleRequest(path: String): Unit = {
+    healthyStubs = Random.shuffle(healthyStubs)
+    val ips: List[String] = readFile(path)
+    recursiveHell(ips)
+  }
 
+
+  val ip: String = scala.io.StdIn.readLine(">")
+
+  val stub1 = createStub(ip, 50004)
+  val stub2 = createStub(ip, 50003)
+  val stub3 = createStub(ip, 50002)
+  val stub4 = createStub(ip, 50000)
+
+  val stubs = List(stub1, stub2, stub3, stub4)
+  var healthyStubs = stubs
+  handleRequest("src/main/scala/geoService/ips.txt")
   System.in.read()
 }
