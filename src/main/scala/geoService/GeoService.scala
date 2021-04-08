@@ -38,7 +38,7 @@ class GeoService extends GeoServiceGrpc.GeoService {
     if (cache.contains(ip)) {
       cache(ip)
     } else {
-      val request = Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.toString
+      val request = Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body
       cache += (ip -> request)
       request
     }
