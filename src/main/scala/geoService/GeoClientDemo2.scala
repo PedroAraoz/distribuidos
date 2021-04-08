@@ -20,8 +20,8 @@ object GeoClientDemo2 extends App {
     GeoServiceGrpc.stub(channel)
   }
   def readFile(): List[String] = Source.fromFile("src/main/scala/geoService/ips.txt").getLines.toList
-//  val ip: String = scala.io.StdIn.readLine(">")
-  val ip = "localhost"
+  val ip: String = scala.io.StdIn.readLine(">")
+//  val ip = "localhost"
   var ips: List[String] = readFile()
 
 
@@ -43,8 +43,9 @@ object GeoClientDemo2 extends App {
       if (r.isFailure) {
         println(healthyStubs.head + " is dead, removing from list")
         healthyStubs = healthyStubs.tail
-        if (healthyStubs.nonEmpty)
-          recursiveHell()
+        if (healthyStubs.isEmpty)
+          healthyStubs = stubs
+        recursiveHell()
       } else {
         println("Ding ding ding")
         parse(r)
