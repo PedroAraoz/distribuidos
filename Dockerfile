@@ -7,8 +7,7 @@ RUN curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E4
 RUN apt update
 RUN apt install git sbt -y
 RUN git clone https://github.com/PedroAraoz/distribuidos.git dist
-RUN cd dist/
-RUN sbt --version
-EXPOSE 5000
+RUN cd dist/ && sbt clean compile
+EXPOSE 50000
 
 # CMD ["/bin/bash"]

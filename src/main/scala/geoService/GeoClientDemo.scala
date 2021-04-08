@@ -17,8 +17,10 @@ object GeoClientDemo extends App {
     GeoServiceGrpc.stub(channel)
   }
 
-  val stub1 = createStub("127.0.0.1", 50000)
-  val stub2 = createStub("127.0.0.1", 50001)
+  val ip: String = scala.io.StdIn.readLine(">")
+
+  val stub1 = createStub(ip, 50000)
+  val stub2 = createStub(ip, 50001)
 
   val stubs = List(stub1, stub2)
   val healthyStubs = stubs
