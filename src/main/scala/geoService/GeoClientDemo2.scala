@@ -2,16 +2,30 @@ package geoService
 
 import demo.geo.{GeoGetCountryCityByIPReq, GeoReply, GeoServiceGrpc}
 import io.grpc.ManagedChannelBuilder
+import scalaj.http.Http
 
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import java.net.InetAddress
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.io.Source
 import scala.util.{Random, Try}
+import scala.sys.process._
 
 object GeoClientDemo2 extends App {
 
   implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
+
+  def registerInETCD(targetIp: String): Unit = {
+
+    val localhost: InetAddress = InetAddress.getLocalHost
+    val localIpAddress: String = localhost.getHostAddress
+
+    println(localIpAddress)
+    val curlIP = "http://" + "127.0.0.1:2379" + "/v2/keys/" + "simple" + "/" + localIpAddress
+    print(curlIP)
+    val cmd = Seq("curl", "-L" ,curlIP,"-XPUT","-d", "value=" + localIpAddress)
+    cmd.!
+  }
   def createStub(ip: String, port: Int = 50000): GeoServiceGrpc.GeoServiceStub = {
     val builder = ManagedChannelBuilder.forAddress(ip, port)
     builder.usePlaintext()
@@ -53,8 +67,8 @@ object GeoClientDemo2 extends App {
     recursiveHell(ips)
   }
 
-
   val ip: String = scala.io.StdIn.readLine(">")
+  registerInETCD(ip)
 
   val stub1 = createStub(ip, 50004)
   val stub2 = createStub(ip, 50003)
