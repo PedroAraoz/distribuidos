@@ -2,13 +2,12 @@ package geoService
 
 import demo.geo.{GeoGetCountryCityByIPReq, GeoReply, GeoServiceGrpc}
 import io.grpc.ManagedChannelBuilder
-import scalaj.http.Http
 
 import java.net.InetAddress
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.io.Source
 import scala.util.{Random, Try}
-import scala.sys.process._
+import io.etcd.jetcd.{ByteSequence, Client}
 
 object GeoClientDemo2 extends App {
 
@@ -21,11 +20,41 @@ object GeoClientDemo2 extends App {
     val localIpAddress: String = localhost.getHostAddress
 
     println(localIpAddress)
-    val curlIP = "http://" + "127.0.0.1:2379" + "/v2/keys/" + "simple" + "/" + localIpAddress
-    print(curlIP)
-    val cmd = Seq("curl", "-L" ,curlIP,"-XPUT","-d", "value=" + localIpAddress)
-    cmd.!
+
+    // Old code using curl
+    //    val curlIP = "http://" + "127.0.0.1:2379" + "/v2/keys/" + "simple" + "/" + localIpAddress
+    //    print(curlIP)
+    //    val cmd = Seq("curl", "-L" ,curlIP,"-XPUT","-d", "value=" + localIpAddress)
+    //    cmd.!
+
+    // New code using java library
+
+    // References:
+    //    // put the key-value
+    //    kvClient.put(key, value).get
+    //
+    //    // get the CompletableFuture
+    //    val getFuture = kvClient.get(key)
+    //
+    //    // get the value from CompletableFuture
+    //    val response = getFuture.get
+    //
+    //    // delete the key
+    //    kvClient.delete(key).get
+
+    val client = Client.builder.endpoints("http://localhost:2379").build
+    val kvClient = client.getKVClient
+
+    val id = 0 // Numero id unico
+
+    val key = ByteSequence.from(("/services/geo/"+id).getBytes)
+    val value = ByteSequence.from(localIpAddress.getBytes)
+
+    kvClient.put(key, value).get
+
+    println(kvClient.get(key))
   }
+
   def createStub(ip: String, port: Int = 50000): GeoServiceGrpc.GeoServiceStub = {
     val builder = ManagedChannelBuilder.forAddress(ip, port)
     builder.usePlaintext()
@@ -33,14 +62,16 @@ object GeoClientDemo2 extends App {
 
     GeoServiceGrpc.stub(channel)
   }
+
   def readFile(path: String): List[String] = Source.fromFile(path).getLines.toList
+
   def recursiveHell(ips: List[String]): Unit = {
     val responses: List[Future[GeoReply]] = ips.map {
       e =>
         healthyStubs.head.getCountryCityByIP(GeoGetCountryCityByIPReq(e))
     }
     val futureGeoReplyList: Future[List[GeoReply]] = Future.sequence(responses)
-    futureGeoReplyList.onComplete{ r =>
+    futureGeoReplyList.onComplete { r =>
       if (r.isFailure) {
         println(healthyStubs.head + " is dead, removing from list")
         healthyStubs = healthyStubs.tail
@@ -53,14 +84,16 @@ object GeoClientDemo2 extends App {
       }
     }
   }
+
   def parse(r: Try[List[GeoReply]]): Unit = {
     val tupleList = r.get.map { e =>
       val data = ujson.read(e.message)
-      (data("country").toString() , data("region").toString())
+      (data("country").toString(), data("region").toString())
     }
     val finalList = tupleList.groupBy(_._1).map(e => (e._1, e._2.map(_._2)))
     print(finalList)
   }
+
   def handleRequest(path: String): Unit = {
     healthyStubs = Random.shuffle(healthyStubs)
     val ips: List[String] = readFile(path)
