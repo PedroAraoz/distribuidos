@@ -4,56 +4,16 @@ import demo.geo.{GeoGetCountryCityByIPReq, GeoReply, GeoServiceGrpc}
 import io.grpc.ManagedChannelBuilder
 
 import java.net.InetAddress
+import java.util.Timer
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.io.Source
 import scala.util.{Random, Try}
-import io.etcd.jetcd.{ByteSequence, Client}
+//import io.etcd.jetcd.{ByteSequence, Client}
+import jetcd.{EtcdClient, EtcdClientFactory}
 
 object GeoClientDemo2 extends App {
 
   implicit val ec: ExecutionContextExecutor = ExecutionContext.global
-
-
-  def registerInETCD(targetIp: String): Unit = {
-
-    val localhost: InetAddress = InetAddress.getLocalHost
-    val localIpAddress: String = localhost.getHostAddress
-
-    println(localIpAddress)
-
-    // Old code using curl
-    //    val curlIP = "http://" + "127.0.0.1:2379" + "/v2/keys/" + "simple" + "/" + localIpAddress
-    //    print(curlIP)
-    //    val cmd = Seq("curl", "-L" ,curlIP,"-XPUT","-d", "value=" + localIpAddress)
-    //    cmd.!
-
-    // New code using java library
-
-    // References:
-    //    // put the key-value
-    //    kvClient.put(key, value).get
-    //
-    //    // get the CompletableFuture
-    //    val getFuture = kvClient.get(key)
-    //
-    //    // get the value from CompletableFuture
-    //    val response = getFuture.get
-    //
-    //    // delete the key
-    //    kvClient.delete(key).get
-
-    val client = Client.builder.endpoints("http://localhost:2379").build
-    val kvClient = client.getKVClient
-
-    val id = 0 // Numero id unico
-
-    val key = ByteSequence.from(("/services/geo/"+id).getBytes)
-    val value = ByteSequence.from(localIpAddress.getBytes)
-
-    kvClient.put(key, value).get
-
-    println(kvClient.get(key))
-  }
 
   def createStub(ip: String, port: Int = 50000): GeoServiceGrpc.GeoServiceStub = {
     val builder = ManagedChannelBuilder.forAddress(ip, port)
@@ -99,14 +59,23 @@ object GeoClientDemo2 extends App {
     val ips: List[String] = readFile(path)
     recursiveHell(ips)
   }
-
-  val ip: String = scala.io.StdIn.readLine(">")
-  registerInETCD(ip)
-
-  val stub1 = createStub(ip, 50004)
-  val stub2 = createStub(ip, 50003)
-  val stub3 = createStub(ip, 50002)
-  val stub4 = createStub(ip, 50000)
+  var client: EtcdClient
+  def getServiceIps(etcdIp: String = "http://127.0.0.1:2379"): List[String] = {
+    client = EtcdClientFactory.newInstance(etcdIp)
+    client.get("/services/geo/") //esto deberia ser un prefix
+    etcdctl watch --prefix service/geo //todo pasar a scala
+    List()
+  }
+  //asumimos que va a ser algo asi
+  def notifyDeathOfService(key: String): Unit = {
+    ips.filterNot(k => k.equals(client.get(key)))
+  }
+  val ips: List[String] = getServiceIps()
+  val circularIps = Iterator.continually(ips).flatten
+  val stub1 = createStub(circularIps.next(), 50004) //falta testear lo de los puertos en vivo
+  val stub2 = createStub(circularIps.next(), 50003)
+  val stub3 = createStub(circularIps.next(), 50002)
+  val stub4 = createStub(circularIps.next(), 50000)
 
   val stubs = List(stub1, stub2, stub3, stub4)
   var healthyStubs = stubs

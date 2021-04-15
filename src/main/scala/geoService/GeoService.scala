@@ -2,8 +2,10 @@ package geoService
 
 import demo.geo._
 import io.grpc.ServerBuilder
+import jetcd.EtcdClientFactory
 import scalaj.http.Http
 
+import java.net.InetAddress
 import scala.concurrent.{ExecutionContext, Future}
 
 class GeoService extends GeoServiceGrpc.GeoService {
@@ -69,6 +71,17 @@ class GeoService extends GeoServiceGrpc.GeoService {
 }
 
 object GeoServer extends App {
+
+  def registerInETCD(etcdIp: String = "http://127.0.0.1:2379"): Unit = {
+    val localhost: InetAddress = InetAddress.getLocalHost
+    val localIpAddress: String = localhost.getHostAddress
+    println(localIpAddress)
+
+    val client = EtcdClientFactory.newInstance(etcdIp)
+    client.set("/services/geo/" + localIpAddress, localIpAddress, 10)
+    //  se supone que la renovacion es automatica, pero como no podemos testear anda a saber.
+  }
+
   val builder = ServerBuilder.forPort(50000)
 
   builder.addService(
@@ -78,6 +91,9 @@ object GeoServer extends App {
   val server = builder.build()
   server.start()
 
+//  val ip: String = scala.io.StdIn.readLine(">")
   println("Running....")
+
+  registerInETCD()
   server.awaitTermination()
 }

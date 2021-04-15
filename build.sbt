@@ -16,7 +16,7 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.12.1",
   "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,
   "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion,
-  "io.etcd" % "jetcd-core" % "0.5.1"
+  "net.floatingsun" % "jetcd" % "0.3.1",
 )
 
 Compile / PB.targets := Seq(
