@@ -14,8 +14,8 @@ object Demo extends App {
   val start = System.currentTimeMillis()
 
   for (i <- 1 to 100000) {
-//    val json = JsonFormat.toJsonString(person1)
-//    val person3 = JsonFormat.fromJsonString[Person](json)
+    //    val json = JsonFormat.toJsonString(person1)
+    //    val person3 = JsonFormat.fromJsonString[Person](json)
     val bytes = Person.toByteArray(person1)
     val person2 = Person.parseFrom(bytes)
 
@@ -30,6 +30,6 @@ object Demo extends App {
 
 
 
-//  println("bytes.length: " + bytes.length)
-//  println("json.length: " + json.length)
+  //  println("bytes.length: " + bytes.length)
+  //  println("json.length: " + json.length)
 }

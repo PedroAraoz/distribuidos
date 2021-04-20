@@ -1,15 +1,15 @@
 package geoService
 
 import demo.geo.{GeoGetCountryCityByIPReq, GeoReply, GeoServiceGrpc}
+import io.etcd.jetcd.options.GetOption
+import io.etcd.jetcd.{ByteSequence, Client, KeyValue}
 import io.grpc.ManagedChannelBuilder
 
-import java.net.InetAddress
-import java.util.Timer
+import scala.collection.JavaConverters
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.io.Source
 import scala.util.{Random, Try}
-//import io.etcd.jetcd.{ByteSequence, Client}
-import jetcd.{EtcdClient, EtcdClientFactory}
+
 
 object GeoClientDemo2 extends App {
 
@@ -59,17 +59,30 @@ object GeoClientDemo2 extends App {
     val ips: List[String] = readFile(path)
     recursiveHell(ips)
   }
-  var client: EtcdClient
-  def getServiceIps(etcdIp: String = "http://127.0.0.1:2379"): List[String] = {
-    client = EtcdClientFactory.newInstance(etcdIp)
-    client.get("/services/geo/") //esto deberia ser un prefix
-    etcdctl watch --prefix service/geo //todo pasar a scala
-    List()
+
+  def bytes(str: String): ByteSequence = {
+    ByteSequence.from(str.getBytes())
   }
-  //asumimos que va a ser algo asi
-  def notifyDeathOfService(key: String): Unit = {
-    ips.filterNot(k => k.equals(client.get(key)))
+
+  def getServiceIps(etcdIp: String = "http://etcd:2379"): List[String] = {
+    val client = Client.builder.endpoints(etcdIp).build
+    val kVClient = client.getKVClient
+    val prefix = bytes("/services/geo/")
+    val option = GetOption.newBuilder().withPrefix(prefix).build()
+    val getFuture = kVClient.get(prefix, option) //todo esto deberia ser un prefix
+    val response = getFuture.get
+    val watchClient = client.getWatchClient
+//    watchClient.watch(bytes("/services/geo/"))
+//    etcdctl watch -- prefix service / geo //todo pasar a scala
+    val almost = JavaConverters.asScalaBuffer(response.getKvs).toList
+    almost.map(_.getValue.toString())
   }
+
+  //  asumimos que va a ser algo asi
+//  def notifyDeathOfService(key: String): Unit = {
+//    ips.filterNot(k => k.equals(client.get(key)))
+//  }
+
   val ips: List[String] = getServiceIps()
   val circularIps = Iterator.continually(ips).flatten
   val stub1 = createStub(circularIps.next(), 50004) //falta testear lo de los puertos en vivo

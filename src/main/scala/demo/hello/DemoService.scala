@@ -1,8 +1,8 @@
 package demo.hello
+
 import io.grpc.stub.StreamObserver
 import io.grpc.{ManagedChannelBuilder, ServerBuilder}
 
-import scala.concurrent.ExecutionContext.global
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class MyService extends HelloServiceGrpc.HelloService {
@@ -38,6 +38,8 @@ object HelloWorldServer extends App {
 
 object ClientDemo extends App {
 
+  println("Starting client...")
+
   implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
 
@@ -49,13 +51,12 @@ object ClientDemo extends App {
     HelloServiceGrpc.stub(channel)
   }
 
-  val stub1 = createStub("127.0.0.1", 50000)
-  val stub2 = createStub("127.0.0.1", 50001)
-
-  val stubs = List(stub1, stub2)
-  val healthyStubs = stubs
-
-
+  val stub1 = createStub("helloserver1", 50000)
+  //  val stub1 = createStub("127.0.0.1", 50000)
+  //  val stub2 = createStub("127.0.0.1", 50001)
+  //
+  //  val stubs = List(stub1) //, stub2)
+  //  val healthyStubs = stubs
 
   // Say hello (request/response)
   val response: Future[HelloReply] = stub1.sayHello(HelloRequest("Juan"))
@@ -71,9 +72,13 @@ object ClientDemo extends App {
     override def onNext(value: HelloReply): Unit = {
       println("Response: " + value)
     }
+
     override def onError(t: Throwable): Unit = {}
+
     override def onCompleted(): Unit = {}
   })
 
-  System.in.read()
+  println("Waiting for response....")
+  Thread.sleep(1000 * 60)
+
 }
