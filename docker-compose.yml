@@ -65,3 +65,20 @@ services:
       - memcached
     networks:
       - app-network
+
+  geoserver:
+    image: 'scalapb-demo:0.1.0-SNAPSHOT'
+    entrypoint: '/opt/docker/bin/geo-server'
+    depends_on:
+      - etcd
+    networks:
+      - app-network
+
+  geoclient:
+    image: 'scalapb-demo:0.1.0-SNAPSHOT'
+    entrypoint: '/opt/docker/bin/geo-client-demo-2'
+    depends_on:
+      - etcd
+      - geoserver
+    networks:
+      - app-network
