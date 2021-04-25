@@ -75,3 +75,4 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies += "com.thesamet.scalapb" %% "scalapb-json4s" % "0.11.0"
+libraryDependencies += "io.monix" %% "shade" % "1.10.0"

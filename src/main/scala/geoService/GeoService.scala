@@ -6,8 +6,12 @@ import io.etcd.jetcd.options.PutOption
 import io.etcd.jetcd.{ByteSequence, Client}
 import io.grpc.ServerBuilder
 import io.grpc.stub.StreamObserver
+import shade.memcached.{Configuration, Memcached}
 
-import java.util.concurrent.CompletableFuture
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.{Duration, DurationInt}
+import scala.util.{Failure, Success, Try}
 //import jetcd.EtcdClientFactory
 import scalaj.http.Http
 
@@ -15,9 +19,6 @@ import java.net.InetAddress
 import scala.concurrent.{ExecutionContext, Future}
 
 class GeoService extends GeoServiceGrpc.GeoService {
-
-  // There is a cache per instance of the GeoService. It saves the looked up ips so it doesn't have to re-make the request
-  var cache: Map[String, String] = Map()
 
   // Private methods to resolve the different requests
 
@@ -41,16 +42,22 @@ class GeoService extends GeoServiceGrpc.GeoService {
     filteredCitiesList.map(e => e.replace("\"", "")).mkString(",")
   }
 
+  val memcached = Memcached(Configuration("localhost:11211"))
+
   private def getCountryCityByIP(ip: String): String = {
-
-    if (cache.contains(ip)) {
-      cache(ip)
-    } else {
-      val request = Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body
-      cache += (ip -> request)
-      request
+    val result: Future[Option[String]] = memcached.get[String](ip)
+    var request: String = ""
+    val asd: Try[Option[String]] = Await.ready(result, Duration.Inf).value.get
+    val result2 = asd match {
+      case Success(value) =>
+        if (value.isDefined) request = value.get
+        else {
+          request = Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body
+          memcached.set(ip, request, 5.minutes)
+        }
+      case Failure(_exception) => throw new RuntimeException
     }
-
+    request
   }
 
   // Overrided methods that are exposed to accept requests. They rely on the private methods for execution
@@ -91,14 +98,15 @@ object GeoServer extends App {
     val id = "/services/geo/" + localIpAddress
 
     val leaseId: Long = leaseClient.grant(10).get().getID
-//    leaseClient.keepAlive(leaseId, new StreamObserver[LeaseKeepAliveResponse] {
-//      override def onNext(value: LeaseKeepAliveResponse): Unit = println("LEASE: " + value)
-//      override def onError(t: Throwable): Unit = {}
-//      override def onCompleted(): Unit = {}
-//    })
+    leaseClient.keepAlive(leaseId, new StreamObserver[LeaseKeepAliveResponse] {
+      override def onNext(value: LeaseKeepAliveResponse): Unit = println("LEASE: " + value)
+
+      override def onError(t: Throwable): Unit = {}
+
+      override def onCompleted(): Unit = {}
+    })
     val option = PutOption.newBuilder().withLeaseId(leaseId).build()
     kVClient.put(bytes(id), bytes(localIpAddress), option)
-    //  se supone que la renovacion es automatica, pero como no podemos testear anda a saber.
   }
 
   val builder = ServerBuilder.forPort(50000)
