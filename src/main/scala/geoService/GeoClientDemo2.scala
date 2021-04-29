@@ -26,7 +26,11 @@ object GeoClientDemo2 extends App {
     GeoServiceGrpc.stub(channel)
   }
 
-  def readFile(path: String): List[String] = Source.fromFile(path).getLines.toList
+//  def readFile(path: String): List[String] = Source.fromFile(path).getLines.toList
+  def readFile(path: String): List[String] = {
+    //todo fix. hardcodeado para no trabarnos con esto
+    List("181.46.160.108", "1.1.1.1", "181.165.170.164", "181.46.160.108")
+  }
 
   def recursiveHell(ips: List[String]): Unit = {
     val responses: List[Future[GeoReply]] = ips.map {
@@ -104,7 +108,7 @@ object GeoClientDemo2 extends App {
 
   val stubs = List(stub1, stub2, stub3, stub4)
   var healthyStubs = stubs
-  handleRequest("src/main/scala/geoService/ips.txt")
+  handleRequest("txts/ips.txt")
 
   print("GEOCLIENT:")
 

@@ -27,45 +27,6 @@ services:
     networks:
       - app-network
 
-  # Run 'sbt docker:publishLocal' to generate these images
-
-  helloserver1:
-    image: 'scalapb-demo:0.1.0-SNAPSHOT'
-    entrypoint: '/opt/docker/bin/hello-world-server'
-    depends_on:
-      - etcd
-      - memcached
-    networks:
-      - app-network
-
-  helloserver2:
-    image: 'scalapb-demo:0.1.0-SNAPSHOT'
-    entrypoint: '/opt/docker/bin/hello-world-server'
-    depends_on:
-      - etcd
-      - memcached
-    networks:
-      - app-network
-
-  client:
-    image: 'scalapb-demo:0.1.0-SNAPSHOT'
-    entrypoint: '/opt/docker/bin/client-demo'
-    depends_on:
-      - etcd
-      - helloserver1
-      - helloserver2
-    networks:
-      - app-network
-
-  etcd-demo:
-    image: 'scalapb-demo:0.1.0-SNAPSHOT'
-    entrypoint: '/opt/docker/bin/etcd-demo'
-    depends_on:
-      - etcd
-      - memcached
-    networks:
-      - app-network
-
   geoserver:
     image: 'scalapb-demo:0.1.0-SNAPSHOT'
     entrypoint: '/opt/docker/bin/geo-server'
@@ -82,3 +43,5 @@ services:
       - geoserver
     networks:
       - app-network
+    volumes:
+      - ./txts/:/txts/

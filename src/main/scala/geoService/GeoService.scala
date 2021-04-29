@@ -42,7 +42,7 @@ class GeoService extends GeoServiceGrpc.GeoService {
     filteredCitiesList.map(e => e.replace("\"", "")).mkString(",")
   }
 
-  val memcached = Memcached(Configuration("localhost:11211"))
+  val memcached = Memcached(Configuration("memcached:11211"))
 
   private def getCountryCityByIP(ip: String): String = {
     val result: Future[Option[String]] = memcached.get[String](ip)
@@ -50,7 +50,9 @@ class GeoService extends GeoServiceGrpc.GeoService {
     val asd: Try[Option[String]] = Await.ready(result, Duration.Inf).value.get
     val result2 = asd match {
       case Success(value) =>
-        if (value.isDefined) request = value.get
+        if (value.isDefined) {
+          request = value.get
+        }
         else {
           request = Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body
           memcached.set(ip, request, 5.minutes)
@@ -59,7 +61,14 @@ class GeoService extends GeoServiceGrpc.GeoService {
     }
     request
   }
-
+  private def get(ip: String): Unit = {
+    val result: Future[Option[String]] = memcached.get[String](ip)
+    var request: String = ""
+    val asd: Try[Option[String]] = Await.ready(result, Duration.Inf).value.get
+    println("------------------")
+    println(asd)
+    println("------------------")
+  }
   // Overrided methods that are exposed to accept requests. They rely on the private methods for execution
 
   override def getAllCountries(request: GeoPingReq): Future[GeoReply] = {
