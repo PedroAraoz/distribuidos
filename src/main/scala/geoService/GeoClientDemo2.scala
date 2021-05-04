@@ -34,8 +34,10 @@ object GeoClientDemo2 extends App {
 
   def recursiveHell(ips: List[String]): Unit = {
     val responses: List[Future[GeoReply]] = ips.map {
-      e =>
+      e => {
+        Thread.sleep(1000);
         healthyStubs.head.getCountryCityByIP(GeoGetCountryCityByIPReq(e))
+      }
     }
     val futureGeoReplyList: Future[List[GeoReply]] = Future.sequence(responses)
     futureGeoReplyList.onComplete { r =>
@@ -54,8 +56,12 @@ object GeoClientDemo2 extends App {
 
   def parse(r: Try[List[GeoReply]]): Unit = {
     val tupleList = r.get.map { e =>
-      val data = ujson.read(e.message)
-      (data("country").toString(), data("region").toString())
+      if (!e.message.equals("")) {
+        val data = ujson.read(e.message)
+        (data("country").toString(), data("region").toString())
+      } else {
+        ("", "")
+      }
     }
     val finalList = tupleList.groupBy(_._1).map(e => (e._1, e._2.map(_._2)))
     print(finalList)

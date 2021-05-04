@@ -48,28 +48,30 @@ class GeoService(cacheURL: String = "memcached:11211", cacheLeaseTime: FiniteDur
   private def getCountryCityByIP(ip: String): String = {
     val result: Future[Option[Array[Byte]]] = memcached.get[Array[Byte]](ip)
     var request: String = ""
-    val asd: Try[Option[Array[Byte]]] = Await.ready(result, Duration.Inf).value.get
-    asd match {
-      case Success(value) =>
-        if (value.isDefined) {
-          request = GeoData.parseFrom(value.get).toProtoString
-          println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
-          println(request)
-          println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
-        }
-        else {
-          request = Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body
-          memcached.set(ip, jsonToGeoData(request).toByteArray, cacheLeaseTime) //5 minutes
-        }
-      case Failure(_) => throw new RuntimeException
+    Await.ready(result, Duration.Inf).value.get // ✨ somos unos magos de scala ✨
+    result.onComplete { asd =>
+      asd match {
+        case Success(value) =>
+          if (value.isDefined) {
+            request = GeoData.parseFrom(value.get).toProtoString
+            println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
+            println(request)
+            println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
+          }
+          else {
+            println("IS NOT DEFINED: " + asd)
+            println("key: " + ip)
+            request = Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body
+            memcached.add(ip, jsonToGeoData(request).toByteArray, cacheLeaseTime) //5 minutes
+          }
+        case Failure(_) => throw new RuntimeException
+      }
     }
     request
   }
   // Overridden methods that are exposed to accept requests. They rely on the private methods for execution
 
   def jsonToGeoData(json: String): GeoData = {
-    println("JSONTOGEODATA")
-    println(json)
     val data = ujson.read(json)
     GeoData(data("country").toString(), data("region").toString())
   }

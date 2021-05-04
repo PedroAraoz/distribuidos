@@ -26,6 +26,8 @@ services:
     image: 'bitnami/memcached:1.6.9'
     networks:
       - app-network
+    ports:
+      - 11211:11211
 
   geoserver:
     image: 'scalapb-demo:0.1.0-SNAPSHOT'
