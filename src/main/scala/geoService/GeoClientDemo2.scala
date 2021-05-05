@@ -27,10 +27,6 @@ object GeoClientDemo2 extends App {
   }
 
   def readFile(path: String): List[String] = Source.fromFile(path).getLines.toList
-//  def readFile(path: String): List[String] = {
-//    //todo fix. hardcodeado para no trabarnos con esto
-//    List("181.46.160.108", "1.1.1.1", "181.165.170.164", "181.46.160.108")
-//  }
 
   def recursiveHell(ips: List[String]): Unit = {
     val responses: List[Future[GeoReply]] = ips.map {

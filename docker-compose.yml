@@ -29,7 +29,15 @@ services:
     ports:
       - 11211:11211
 
-  geoserver:
+  geoserver1:
+    image: 'scalapb-demo:0.1.0-SNAPSHOT'
+    entrypoint: '/opt/docker/bin/geo-server'
+    depends_on:
+      - etcd
+    networks:
+      - app-network
+
+  geoserver2:
     image: 'scalapb-demo:0.1.0-SNAPSHOT'
     entrypoint: '/opt/docker/bin/geo-server'
     depends_on:
@@ -42,7 +50,8 @@ services:
     entrypoint: '/opt/docker/bin/geo-client-demo-2'
     depends_on:
       - etcd
-      - geoserver
+      - geoserver1
+      - geoserver2
     networks:
       - app-network
     volumes:
