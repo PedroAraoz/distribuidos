@@ -99,13 +99,11 @@ object GeoClientDemo2 extends App {
 
 
   var ips: List[String] = getServiceIps()
-  val circularIps = Iterator.continually(ips).flatten
-  val stub1 = createStub(circularIps.next(), 50004) //falta testear lo de los puertos en vivo
-  val stub2 = createStub(circularIps.next(), 50003)
-  val stub3 = createStub(circularIps.next(), 50002)
-  val stub4 = createStub(circularIps.next(), 50000)
 
-  val stubs = List(stub1, stub2, stub3, stub4)
+  val stubs = ips.map(i => {
+    println(i)
+    createStub(i)
+  })
   var healthyStubs = stubs
   handleRequest("/txts/ips.txt")
 

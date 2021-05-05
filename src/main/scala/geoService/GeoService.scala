@@ -7,20 +7,39 @@ import io.etcd.jetcd.kv.GetResponse
 import io.etcd.jetcd.lease.LeaseKeepAliveResponse
 import io.etcd.jetcd.options.PutOption
 import io.etcd.jetcd.{ByteSequence, Client}
-import io.grpc.ServerBuilder
 import io.grpc.stub.StreamObserver
+import io.grpc.{ManagedChannelBuilder, ServerBuilder}
 import scalaj.http.Http
 import shade.memcached.{Configuration, Memcached}
 
 import java.net.InetAddress
 import scala.collection.JavaConverters
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{Duration, DurationInt, DurationLong, FiniteDuration}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class GeoService(cacheURL: String = "memcached:11211", cacheLeaseTime: FiniteDuration) extends GeoServiceGrpc.GeoService {
-
   // Private methods to resolve the different requests
+
+  var isLeader: Boolean = true
+  var leaderIp: String = _
+  var leaderStub: GeoServiceGrpc.GeoServiceStub = _
+  def setLeader(b: Boolean, ip: String): Unit = {
+    isLeader = b
+    leaderIp = ip
+    println("SET LEADER")
+    println(isLeader)
+    println(leaderIp)
+    if (!isLeader)
+      leaderStub = createStub(leaderIp)
+  }
+  def createStub(ip: String, port: Int = 50000): GeoServiceGrpc.GeoServiceStub = {
+    val builder = ManagedChannelBuilder.forAddress(ip, port)
+    builder.usePlaintext()
+    val channel = builder.build()
+
+    GeoServiceGrpc.stub(channel)
+  }
 
   private def readCSV: String = {
     val csvString = os.read(os.pwd / "src" / "main" / "scala" / "geoService" / "data.csv")
@@ -50,9 +69,15 @@ class GeoService(cacheURL: String = "memcached:11211", cacheLeaseTime: FiniteDur
       case Some(value: Array[Byte]) =>
         request = GeoReply.parseFrom(value)
       case None =>
-        val byteArray = GeoReply(Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body).toByteArray
-        request = GeoReply.parseFrom(byteArray)
-        memcached.awaitAdd(ip, byteArray, cacheLeaseTime) //5 minutes
+        if (isLeader) {
+          val byteArray = GeoReply(Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body).toByteArray
+          request = GeoReply.parseFrom(byteArray)
+          memcached.awaitAdd(ip, byteArray, cacheLeaseTime) //5 minutes
+        } else {
+          val asd: Future[GeoReply] = leaderStub.getCountryCityByIP(GeoGetCountryCityByIPReq(ip))
+          Await.ready(asd, Duration.Inf)
+          request = asd.value.get.get
+        }
     }
     request
   }
@@ -114,7 +139,7 @@ object GeoServer extends App {
     })
     val option = PutOption.newBuilder().withLeaseId(leaseId).build()
     clientKV.put(bytes(id), bytes(localIpAddress), option)
-    ec.observe(bytes("/services/geo/election"), new Listener() {
+    ec.observe(bytes("/election/geo/"), new Listener() {
       override def onNext(leaderResponse: LeaderResponse): Unit = {
 
       }
@@ -136,10 +161,11 @@ object GeoServer extends App {
   }
 
   def watch(): Unit = {
-    ec.observe(bytes("/services/geo/election"), new Listener {
+    ec.observe(bytes("/election/geo/"), new Listener {
       override def onNext(leaderResponse: LeaderResponse): Unit = {
         val leaderIp = leaderResponse.getKv.getValue.getBytes.map(_.toChar).mkString
         leader = leaderIp.equals(localIpAddress)
+        coso.setLeader(leader, leaderIp)
         println("I am: "+ localIpAddress + " and i am leader: "+ leader)
       }
 
@@ -152,10 +178,8 @@ object GeoServer extends App {
   val builder = ServerBuilder.forPort(50000)
 
   getDataFromETCD()
-
-  builder.addService(
-    GeoServiceGrpc.bindService(new GeoService(cacheURL, cacheLeaseTime), ExecutionContext.global)
-  )
+  val coso = new GeoService(cacheURL, cacheLeaseTime)
+  builder.addService(GeoServiceGrpc.bindService(coso, ExecutionContext.global))
 
   val server = builder.build()
   server.start()
@@ -166,7 +190,7 @@ object GeoServer extends App {
   watch()
   while (true) {
     if (!leader) {
-      ec.campaign(bytes("/services/geo/election"), leaseId, bytes(localIpAddress))
+      ec.campaign(bytes("/election/geo/"), leaseId, bytes(localIpAddress))
     }
     Thread.sleep(6000)
   }
