@@ -13,8 +13,9 @@ import scalaj.http.Http
 import shade.memcached.{Configuration, Memcached}
 
 import java.net.InetAddress
+import scala.collection.JavaConverters
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 
 class GeoService(cacheURL: String = "memcached:11211", cacheLeaseTime: FiniteDuration) extends GeoServiceGrpc.GeoService {
@@ -131,15 +132,18 @@ object GeoServer extends App {
 
 
 
-    val ttl: GetResponse = clientKV.get(bytes("config/services/geo/cache/ttl")).get
-    val url: GetResponse = clientKV.get(bytes("config/services/geo/cache/url")).get
-//    cacheLeaseTime = JavaConverters.asScalaBuffer(ttl.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString.toLong.minutes
-//    cacheURL = JavaConverters.asScalaBuffer(url.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString
+    val ttl: GetResponse = clientKV.get(bytes("config/services/geo/cache/ttl")).join()
+    val url: GetResponse = clientKV.get(bytes("config/services/geo/cache/url")).join()
+    
+    cacheLeaseTime = JavaConverters.asScalaBuffer(ttl.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString.toLong.minutes
+    cacheURL = JavaConverters.asScalaBuffer(url.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString
     println("CACHE URL: " + cacheURL)
     println("CACHE LEASE TIME: " + cacheLeaseTime)
   }
 
   val builder = ServerBuilder.forPort(50000)
+
+  getDataFromETCD()
 
   builder.addService(
     GeoServiceGrpc.bindService(new GeoService(cacheURL, cacheLeaseTime), ExecutionContext.global)
@@ -150,7 +154,6 @@ object GeoServer extends App {
 
   //  val ip: String = scala.io.StdIn.readLine(">")
   println("Running.... GEO SERVICE")
-  getDataFromETCD()
   registerInETCD()
 
 //  while (true) {
