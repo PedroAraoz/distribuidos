@@ -5,7 +5,7 @@ import io.etcd.jetcd.Watch.Listener
 import io.etcd.jetcd.options.{GetOption, WatchOption}
 import io.etcd.jetcd.watch.WatchEvent.EventType
 import io.etcd.jetcd.watch.WatchResponse
-import io.etcd.jetcd.{ByteSequence, Client, KeyValue}
+import io.etcd.jetcd.{ByteSequence, Client}
 import io.grpc.ManagedChannelBuilder
 
 import scala.collection.JavaConverters
@@ -35,7 +35,7 @@ object GeoClientDemo2 extends App {
   def recursiveHell(ips: List[String]): Unit = {
     val responses: List[Future[GeoReply]] = ips.map {
       e => {
-        Thread.sleep(1000);
+        Thread.sleep(500);
         healthyStubs.head.getCountryCityByIP(GeoGetCountryCityByIPReq(e))
       }
     }
@@ -56,15 +56,12 @@ object GeoClientDemo2 extends App {
 
   def parse(r: Try[List[GeoReply]]): Unit = {
     val tupleList = r.get.map { e =>
-      if (!e.message.equals("")) {
-        val data = ujson.read(e.message)
-        (data("country").toString(), data("region").toString())
-      } else {
-        ("", "")
-      }
+      val data = ujson.read(e.message)
+      (data("country").toString(), data("region").toString())
     }
+    println("Processing...")
     val finalList = tupleList.groupBy(_._1).map(e => (e._1, e._2.map(_._2)))
-    print(finalList)
+    println(finalList)
   }
 
   def handleRequest(path: String): Unit = {

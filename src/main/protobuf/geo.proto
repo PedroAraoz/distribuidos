@@ -9,6 +9,11 @@ service GeoService {
     rpc getCountryCityByIP (GeoGetCountryCityByIPReq) returns (GeoReply) {}
 }
 
+message GeoData {
+    string country = 1;
+    string region = 2;
+}
+
 message GeoPingReq {}
 
 message GeoReply {

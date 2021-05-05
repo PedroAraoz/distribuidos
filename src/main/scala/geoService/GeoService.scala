@@ -1,9 +1,8 @@
 package geoService
 
-import demo.cache.GeoData
 import demo.geo._
 import io.etcd.jetcd.Election.Listener
-import io.etcd.jetcd.election.{CampaignResponse, LeaderResponse}
+import io.etcd.jetcd.election.LeaderResponse
 import io.etcd.jetcd.kv.GetResponse
 import io.etcd.jetcd.lease.LeaseKeepAliveResponse
 import io.etcd.jetcd.options.PutOption
@@ -15,9 +14,8 @@ import shade.memcached.{Configuration, Memcached}
 
 import java.net.InetAddress
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{Duration, DurationInt, DurationLong, FiniteDuration}
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future}
 
 class GeoService(cacheURL: String = "memcached:11211", cacheLeaseTime: FiniteDuration) extends GeoServiceGrpc.GeoService {
 
@@ -45,36 +43,19 @@ class GeoService(cacheURL: String = "memcached:11211", cacheLeaseTime: FiniteDur
 
   val memcached: Memcached = Memcached(Configuration(cacheURL))
 
-  private def getCountryCityByIP(ip: String): String = {
-    val result: Future[Option[Array[Byte]]] = memcached.get[Array[Byte]](ip)
-    var request: String = ""
-    Await.ready(result, Duration.Inf).value.get // ✨ somos unos magos de scala ✨
-    result.onComplete { asd =>
-      asd match {
-        case Success(value) =>
-          if (value.isDefined) {
-            request = GeoData.parseFrom(value.get).toProtoString
-            println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
-            println(request)
-            println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
-          }
-          else {
-            println("IS NOT DEFINED: " + asd)
-            println("key: " + ip)
-            request = Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body
-            memcached.add(ip, jsonToGeoData(request).toByteArray, cacheLeaseTime) //5 minutes
-          }
-        case Failure(_) => throw new RuntimeException
-      }
+  private def getCountryCityByIP(ip: String): GeoReply = {
+    var request: GeoReply = GeoReply()
+    memcached.awaitGet[Array[Byte]](ip) match {
+      case Some(value: Array[Byte]) =>
+        request = GeoReply.parseFrom(value)
+      case None =>
+        val byteArray = GeoReply(Http("http://ipwhois.app/json/" + ip + "?objects=country,region").asString.body).toByteArray
+        request = GeoReply.parseFrom(byteArray)
+        memcached.awaitAdd(ip, byteArray, cacheLeaseTime) //5 minutes
     }
     request
   }
   // Overridden methods that are exposed to accept requests. They rely on the private methods for execution
-
-  def jsonToGeoData(json: String): GeoData = {
-    val data = ujson.read(json)
-    GeoData(data("country").toString(), data("region").toString())
-  }
 
   override def getAllCountries(request: GeoPingReq): Future[GeoReply] = {
     val reply = GeoReply(message = getCountries)
@@ -92,7 +73,7 @@ class GeoService(cacheURL: String = "memcached:11211", cacheLeaseTime: FiniteDur
   }
 
   override def getCountryCityByIP(request: GeoGetCountryCityByIPReq): Future[GeoReply] = {
-    val reply = GeoReply(message = getCountryCityByIP(request.ip))
+    val reply = getCountryCityByIP(request.ip)
     Future.successful(reply)
   }
 }
@@ -147,10 +128,15 @@ object GeoServer extends App {
 
     val clientW = client.getWatchClient
     //todo completar
+
+
+
     val ttl: GetResponse = clientKV.get(bytes("config/services/geo/cache/ttl")).get
     val url: GetResponse = clientKV.get(bytes("config/services/geo/cache/url")).get
-//    cacheURL = url.getKvs.get(0).getValue.toString
-//    cacheLeaseTime = ttl.getKvs.get(0).getValue.toString().toLong.minutes
+//    cacheLeaseTime = JavaConverters.asScalaBuffer(ttl.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString.toLong.minutes
+//    cacheURL = JavaConverters.asScalaBuffer(url.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString
+    println("CACHE URL: " + cacheURL)
+    println("CACHE LEASE TIME: " + cacheLeaseTime)
   }
 
   val builder = ServerBuilder.forPort(50000)

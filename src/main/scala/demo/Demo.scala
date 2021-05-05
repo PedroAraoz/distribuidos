@@ -1,7 +1,6 @@
 package demo
 
 import demo.msg.{Address, CivilStatus, Person}
-import scalapb.json4s.JsonFormat
 
 object Demo extends App {
 
