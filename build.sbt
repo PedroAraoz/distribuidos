@@ -76,3 +76,5 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "com.thesamet.scalapb" %% "scalapb-json4s" % "0.11.0"
 libraryDependencies += "io.monix" %% "shade" % "1.10.0"
+
+libraryDependencies += "io.fabric8" % "kubernetes-client" % "5.4.1"

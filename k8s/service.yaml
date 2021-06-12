@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: geo-server-service
+  labels:
+    app: geo-server
+spec:
+  selector:
+    app: geo-server
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

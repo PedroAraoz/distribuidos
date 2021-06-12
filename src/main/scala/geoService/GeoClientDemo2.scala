@@ -6,6 +6,7 @@ import io.etcd.jetcd.options.{GetOption, WatchOption}
 import io.etcd.jetcd.watch.WatchEvent.EventType
 import io.etcd.jetcd.watch.WatchResponse
 import io.etcd.jetcd.{ByteSequence, Client}
+import io.fabric8.kubernetes.client.DefaultKubernetesClient
 import io.grpc.ManagedChannelBuilder
 
 import scala.collection.JavaConverters
@@ -71,28 +72,38 @@ object GeoClientDemo2 extends App {
   }
 
   def getServiceIps(etcdIp: String = "http://etcd:2379"): List[String] = {
-    val client = Client.builder.endpoints(etcdIp).build
-    val kVClient = client.getKVClient
-    val prefix = bytes("/services/geo/")
-    val option = GetOption.newBuilder().withPrefix(prefix).build()
-    val getFuture = kVClient.get(prefix, option)
-    val response = getFuture.get
-    val watchClient = client.getWatchClient
-    val watchOption = WatchOption.newBuilder().withPrefix(bytes("/services/geo/")).build()
-    watchClient.watch(bytes("/services/geo/"), watchOption, new Listener {
-      override def onNext(watchResponse: WatchResponse): Unit = {
-        val a = JavaConverters.asScalaBuffer(watchResponse.getEvents).toList
-        a.filter(_.getEventType.eq(EventType.DELETE)).foreach {
-          e =>
-            val ip = e.getKeyValue.getValue.getBytes.map(_.toChar).mkString
-            ips = ips.filterNot(_.eq(ip))
-        }
-      }
 
-      override def onError(throwable: Throwable): Unit = println("ERROR")
+    val k8sclient = new DefaultKubernetesClient()
+    println("!!!")
+    println(k8sclient.namespaces().list())
+    println("!!!")
+    println(k8sclient.services().list())
+    println("!!!")
+    println(k8sclient.services().withName("geo-server-service").get)
+    println("!!!")
 
-      override def onCompleted(): Unit = println("COMPLETED!")
-    })
+    //    val client = Client.builder.endpoints(etcdIp).build
+//    val kVClient = client.getKVClient
+//    val prefix = bytes("/services/geo/")
+//    val option = GetOption.newBuilder().withPrefix(prefix).build()
+//    val getFuture = kVClient.get(prefix, option)
+//    val response = getFuture.get
+//    val watchClient = client.getWatchClient
+//    val watchOption = WatchOption.newBuilder().withPrefix(bytes("/services/geo/")).build()
+//    watchClient.watch(bytes("/services/geo/"), watchOption, new Listener {
+//      override def onNext(watchResponse: WatchResponse): Unit = {
+//        val a = JavaConverters.asScalaBuffer(watchResponse.getEvents).toList
+//        a.filter(_.getEventType.eq(EventType.DELETE)).foreach {
+//          e =>
+//            val ip = e.getKeyValue.getValue.getBytes.map(_.toChar).mkString
+//            ips = ips.filterNot(_.eq(ip))
+//        }
+//      }
+//
+//      override def onError(throwable: Throwable): Unit = println("ERROR")
+//
+//      override def onCompleted(): Unit = println("COMPLETED!")
+//    })
 //    etcdctl watch -- prefix service / geo //todo pasar a scala
     JavaConverters.asScalaBuffer(response.getKvs).toList.map(_.getValue.getBytes.map(_.toChar).mkString)
   }
