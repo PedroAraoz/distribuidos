@@ -84,7 +84,7 @@ class GeoServiceKub(cacheURL: String = "memcached:11211", cacheLeaseTime: Finite
 
 
 object GeoServerKub extends App {
-  var cacheURL: String = "memcached:11211"
+  var cacheURL: String = "10.110.240.30:11211"
   var cacheLeaseTime: FiniteDuration = 5.minutes
 
   val localhost: InetAddress = InetAddress.getLocalHost
