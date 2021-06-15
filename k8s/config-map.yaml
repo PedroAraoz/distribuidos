@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-geo
+  namespace: default
+data:
+  port: "50000"

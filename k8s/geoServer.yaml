@@ -1,22 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: geo-server-deployment
+  name: geo-server-kub-deployment
   labels:
-    app: geo-server
+    app: geo-server-kub
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: geo-server
+      app: geo-server-kub
   template:
     metadata:
       labels:
-        app: geo-server
+        app: geo-server-kub
     spec:
       containers:
-      - name: geo-server
+      - name: geo-server-kub
         command: ['/opt/docker/bin/geo-server']
-        image: scalapb-demo:0.1.0-SNAPSHOT
+        image: distribuidos:0.1.0-SNAPSHOT
         ports:
         - containerPort: 50000
+
+        env:
+          - name: port
+            valueFrom: 
+              configMapKeyRef:
+                name: config-geo
+                key: port

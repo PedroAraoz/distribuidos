@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: geo-client
-        image: scalapb-demo:0.1.0-SNAPSHOT
+        image: distribuidos:0.1.0-SNAPSHOT
         command: ['/opt/docker/bin/geo-client-demo-2']
         ports:
         - containerPort: 50000

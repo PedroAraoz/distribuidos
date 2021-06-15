@@ -104,94 +104,95 @@ class GeoService(cacheURL: String = "memcached:11211", cacheLeaseTime: FiniteDur
   }
 }
 
+
 object GeoServer extends App {
-  var myLeaseTime: Long = 10
+  // var myLeaseTime: Long = 10
   var cacheURL: String = "memcached:11211"
   var cacheLeaseTime: FiniteDuration = 5.minutes
-  var etcdIp: String = "http://etcd:2379"
+  // var etcdIp: String = "http://etcd:2379"
 
-  val client = Client.builder.endpoints(etcdIp).build
-  val clientKV = client.getKVClient
-  val clientW = client.getWatchClient
-  val ec = client.getElectionClient
-  val leaseClient = client.getLeaseClient
+  // val client = Client.builder.endpoints(etcdIp).build
+  // val clientKV = client.getKVClient
+  // val clientW = client.getWatchClient
+  // val ec = client.getElectionClient
+  // val leaseClient = client.getLeaseClient
 
-  val leaseId: Long = leaseClient.grant(myLeaseTime).get().getID //10
+  // val leaseId: Long = leaseClient.grant(myLeaseTime).get().getID //10
 
   val localhost: InetAddress = InetAddress.getLocalHost
   val localIpAddress: String = localhost.getHostAddress
-  var leader: Boolean = false
+  // var leader: Boolean = false
 
-  def bytes(str: String): ByteSequence = {
-    ByteSequence.from(str.getBytes())
-  }
+  // def bytes(str: String): ByteSequence = {
+  //   ByteSequence.from(str.getBytes())
+  // }
 
-  def registerInETCD(): Unit = {
-    val id = "/services/geo/" + localIpAddress
-    leaseClient.keepAlive(leaseId, new StreamObserver[LeaseKeepAliveResponse] {
-      override def onNext(value: LeaseKeepAliveResponse): Unit = {
-        // println("LEASE: " + value)
-      }
+  // def registerInETCD(): Unit = {
+  //   val id = "/services/geo/" + localIpAddress
+  //   leaseClient.keepAlive(leaseId, new StreamObserver[LeaseKeepAliveResponse] {
+  //     override def onNext(value: LeaseKeepAliveResponse): Unit = {
+  //       // println("LEASE: " + value)
+  //     }
 
-      override def onError(t: Throwable): Unit = {}
+  //     override def onError(t: Throwable): Unit = {}
 
-      override def onCompleted(): Unit = {}
-    })
-    val option = PutOption.newBuilder().withLeaseId(leaseId).build()
-    clientKV.put(bytes(id), bytes(localIpAddress), option)
-    ec.observe(bytes("/election/geo/"), new Listener() {
-      override def onNext(leaderResponse: LeaderResponse): Unit = {
+  //     override def onCompleted(): Unit = {}
+  //   })
+  //   val option = PutOption.newBuilder().withLeaseId(leaseId).build()
+  //   clientKV.put(bytes(id), bytes(localIpAddress), option)
+  //   ec.observe(bytes("/election/geo/"), new Listener() {
+  //     override def onNext(leaderResponse: LeaderResponse): Unit = {
 
-      }
+  //     }
 
-      override def onError(throwable: Throwable): Unit = {}
+  //     override def onError(throwable: Throwable): Unit = {}
 
-      override def onCompleted(): Unit = {}
-    })
-  }
+  //     override def onCompleted(): Unit = {}
+  //   })
+  // }
 
-  def getDataFromETCD(): Unit = {
-    val ttl: GetResponse = clientKV.get(bytes("config/services/geo/cache/ttl")).join()
-    val url: GetResponse = clientKV.get(bytes("config/services/geo/cache/url")).join()
+  // def getDataFromETCD(): Unit = {
+  //   val ttl: GetResponse = clientKV.get(bytes("config/services/geo/cache/ttl")).join()
+  //   val url: GetResponse = clientKV.get(bytes("config/services/geo/cache/url")).join()
 
-    cacheLeaseTime = JavaConverters.asScalaBuffer(ttl.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString.toLong.minutes
-    cacheURL = JavaConverters.asScalaBuffer(url.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString
-    println("CACHE URL: " + cacheURL)
-    println("CACHE LEASE TIME: " + cacheLeaseTime)
-  }
+  //   cacheLeaseTime = JavaConverters.asScalaBuffer(ttl.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString.toLong.minutes
+  //   cacheURL = JavaConverters.asScalaBuffer(url.getKvs).toList.head.getValue.getBytes.map(_.toChar).mkString
+  //   println("CACHE URL: " + cacheURL)
+  //   println("CACHE LEASE TIME: " + cacheLeaseTime)
+  // }
 
-  def watch(): Unit = {
-    ec.observe(bytes("/election/geo/"), new Listener {
-      override def onNext(leaderResponse: LeaderResponse): Unit = {
-        val leaderIp = leaderResponse.getKv.getValue.getBytes.map(_.toChar).mkString
-        leader = leaderIp.equals(localIpAddress)
-        coso.setLeader(leader, leaderIp)
-        println("I am: "+ localIpAddress + " and i am leader: "+ leader)
-      }
+  // def watch(): Unit = {
+  //   ec.observe(bytes("/election/geo/"), new Listener {
+  //     override def onNext(leaderResponse: LeaderResponse): Unit = {
+  //       val leaderIp = leaderResponse.getKv.getValue.getBytes.map(_.toChar).mkString
+  //       leader = leaderIp.equals(localIpAddress)
+  //       coso.setLeader(leader, leaderIp)
+  //       println("I am: "+ localIpAddress + " and i am leader: "+ leader)
+  //     }
 
-      override def onError(throwable: Throwable): Unit = println("ERROR ELECTION")
+  //     override def onError(throwable: Throwable): Unit = println("ERROR ELECTION")
 
-      override def onCompleted(): Unit = println("ON COMPLETED ELECTION")
-    })
-  }
+  //     override def onCompleted(): Unit = println("ON COMPLETED ELECTION")
+  //   })
+  // }
 
-  val builder = ServerBuilder.forPort(50000)
+  val builder = ServerBuilder.forPort(sys.env.getOrElse("port", "50000").toInt)
 
-  getDataFromETCD()
-  val coso = new GeoService(cacheURL, cacheLeaseTime)
-  builder.addService(GeoServiceGrpc.bindService(coso, ExecutionContext.global))
+  // getDataFromETCD()
+  val service = new GeoService(cacheURL, cacheLeaseTime)
+  builder.addService(GeoServiceGrpc.bindService(service, ExecutionContext.global))
 
   val server = builder.build()
   server.start()
 
   //  val ip: String = scala.io.StdIn.readLine(">")
   println("Running.... GEO SERVICE")
-  registerInETCD()
-  watch()
+  // registerInETCD()
+  // watch()
   while (true) {
-    if (!leader) {
-      ec.campaign(bytes("/election/geo/"), leaseId, bytes(localIpAddress))
-    }
+    // if (!leader) {
+    //   ec.campaign(bytes("/election/geo/"), leaseId, bytes(localIpAddress))
+    // }
     Thread.sleep(6000)
   }
   server.awaitTermination()

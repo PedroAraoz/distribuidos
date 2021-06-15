@@ -105,7 +105,8 @@ object GeoClientDemo2 extends App {
 //      override def onCompleted(): Unit = println("COMPLETED!")
 //    })
 //    etcdctl watch -- prefix service / geo //todo pasar a scala
-    JavaConverters.asScalaBuffer(response.getKvs).toList.map(_.getValue.getBytes.map(_.toChar).mkString)
+//    JavaConverters.asScalaBuffer(response.getKvs).toList.map(_.getValue.getBytes.map(_.toChar).mkString)
+      List()
   }
 
 
