@@ -32,7 +32,7 @@ class AuthService extends AuthServiceGrpc.AuthService {
 }
 
 object AuthServer extends App {
-  val builder = ServerBuilder.forPort(50000)
+  val builder = ServerBuilder.forPort(sys.env.getOrElse("port", "8080").toInt)
 
   builder.addService(
     AuthServiceGrpc.bindService(new AuthService(), ExecutionContext.global)

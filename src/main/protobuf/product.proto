@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package demo;
+
+service ProductService {
+  rpc getProducts (ProductReq) returns (ProductReply) {}
+}
+
+message ProductReq {
+}
+
+message ProductReply {
+  string map = 1;
+}

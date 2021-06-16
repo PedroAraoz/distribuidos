@@ -19,7 +19,7 @@ spec:
         command: ['/opt/docker/bin/geo-server']
         image: distribuidos:0.1.0-SNAPSHOT
         ports:
-        - containerPort: 50000
+        - containerPort: 8080
 
         env:
           - name: port

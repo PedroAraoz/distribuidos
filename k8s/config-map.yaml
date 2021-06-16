@@ -4,4 +4,4 @@ metadata:
   name: config-geo
   namespace: default
 data:
-  port: "50000"
+  port: "8080"

@@ -1,0 +1,60 @@
+#Deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-server-deployment
+  labels:
+    app: auth-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-server
+  template:
+    metadata:
+      labels:
+        app: auth-server
+    spec:
+      containers:
+        - name: auth-server
+          command: ['/opt/docker/bin/auth-server']
+          image: distribuidos:0.1.0-SNAPSHOT
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: port
+              valueFrom:
+                configMapKeyRef:
+                  name: config-auth
+                  key: port
+
+---
+# Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-server-service
+  labels:
+    app: auth-server
+spec:
+  selector:
+    app: auth-server
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+
+---
+# Config map
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-auth
+  namespace: default
+data:
+  port: "8080"

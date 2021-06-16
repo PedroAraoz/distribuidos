@@ -90,7 +90,7 @@ object GeoServerKub extends App {
   val localhost: InetAddress = InetAddress.getLocalHost
   val localIpAddress: String = localhost.getHostAddress
 
-  val port = sys.env.getOrElse("port", "50000").toInt
+  val port = sys.env.getOrElse("port", "8080").toInt
  
   val builder = ServerBuilder.forPort(port)
 
