@@ -1,8 +1,9 @@
 package productService
 
-import io.grpc.{ManagedChannelBuilder, ServerBuilder}
-import scala.collection.immutable
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import demo.product.{ProductReply, ProductReq, ProductServiceGrpc}
+import io.grpc.ServerBuilder
+
+import scala.concurrent.{ExecutionContext, Future}
 
 class ProductService extends ProductServiceGrpc.ProductService {
 
