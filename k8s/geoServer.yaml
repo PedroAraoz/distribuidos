@@ -27,3 +27,22 @@ spec:
               configMapKeyRef:
                 name: config-geo
                 key: port
+
+
+---
+# Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: geo-server-service
+  labels:
+    app: geo-server-kub
+spec:
+  selector:
+    app: geo-server-kub
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
