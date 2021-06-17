@@ -1,0 +1,48 @@
+#Deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prod-service-deployment
+  labels:
+    app: prduct-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product-server
+  template:
+    metadata:
+      labels:
+        app: product-server
+    spec:
+      containers:
+        - name: product-server
+          command: ['/opt/docker/bin/product-server']
+          image: distribuidos:0.1.0-SNAPSHOT
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: port
+              valueFrom:
+                configMapKeyRef:
+                  name: config-auth
+                  key: port
+
+---
+# Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-server-service
+  labels:
+    app: product-server
+spec:
+  selector:
+    app: product-server
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8080
